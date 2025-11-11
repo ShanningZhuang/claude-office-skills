@@ -16,10 +16,15 @@
  *   - Extracts placeholder elements (class="placeholder") with positions
  *   - Handles CSS gradients, borders, and margins
  *
- * VALIDATION:
- *   - Uses body width/height from HTML for viewport sizing
- *   - Throws error if HTML dimensions don't match presentation layout
- *   - Throws error if content overflows body (with overflow details)
+ * VALIDATION (MODIFIED):
+ *   - ⚠️ ALL VALIDATION DISABLED - Force export enabled
+ *   - Validation errors are logged as warnings but don't prevent export
+ *   - This allows manual adjustment in PowerPoint after export
+ *   - Checks performed (but not enforced):
+ *     • Overflow detection (content exceeding body dimensions)
+ *     • Text position (bottom edge clearance)
+ *     • Dimension matching (HTML vs presentation layout)
+ *     • Extraction errors (HTML parsing issues)
  *
  * RETURNS:
  *   { slide, placeholders } where placeholders is an array of { id, x, y, w, h }
@@ -951,32 +956,36 @@ async function html2pptx(htmlFile, pres, options = {}) {
       await browser.close();
     }
 
-    // Collect all validation errors
+    // Collect all validation errors (but don't throw - allow force export)
     if (bodyDimensions.errors && bodyDimensions.errors.length > 0) {
-      validationErrors.push(...bodyDimensions.errors);
+      console.warn(`⚠ Overflow warning: ${bodyDimensions.errors.join('; ')}`);
+      // validationErrors.push(...bodyDimensions.errors);  // DISABLED
     }
 
     const dimensionErrors = validateDimensions(bodyDimensions, pres);
     if (dimensionErrors.length > 0) {
-      validationErrors.push(...dimensionErrors);
+      console.warn(`⚠ Dimension warning: ${dimensionErrors.join('; ')}`);
+      // validationErrors.push(...dimensionErrors);  // DISABLED
     }
 
     const textBoxPositionErrors = validateTextBoxPosition(slideData, bodyDimensions);
     if (textBoxPositionErrors.length > 0) {
-      validationErrors.push(...textBoxPositionErrors);
+      console.warn(`⚠ Position warning: ${textBoxPositionErrors.join('; ')}`);
+      // validationErrors.push(...textBoxPositionErrors);  // DISABLED
     }
 
     if (slideData.errors && slideData.errors.length > 0) {
-      validationErrors.push(...slideData.errors);
+      console.warn(`⚠ Extraction warning: ${slideData.errors.join('; ')}`);
+      // validationErrors.push(...slideData.errors);  // DISABLED
     }
 
-    // Throw all errors at once if any exist
-    if (validationErrors.length > 0) {
-      const errorMessage = validationErrors.length === 1
-        ? validationErrors[0]
-        : `Multiple validation errors found:\n${validationErrors.map((e, i) => `  ${i + 1}. ${e}`).join('\n')}`;
-      throw new Error(errorMessage);
-    }
+    // Validation disabled - warnings logged but export continues
+    // if (validationErrors.length > 0) {
+    //   const errorMessage = validationErrors.length === 1
+    //     ? validationErrors[0]
+    //     : `Multiple validation errors found:\n${validationErrors.map((e, i) => `  ${i + 1}. ${e}`).join('\n')}`;
+    //   throw new Error(errorMessage);
+    // }
 
     const targetSlide = slide || pres.addSlide();
 
